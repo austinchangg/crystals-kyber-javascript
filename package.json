@@ -12,6 +12,7 @@
         "javascript"
     ],
     "dependencies": {
+        "crystals-kyber": "^5.1.0",
         "sha3": "^2.1.4"
     }
 }

